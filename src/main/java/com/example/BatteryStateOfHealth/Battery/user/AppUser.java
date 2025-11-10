@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Entity
 @Table
-public class User {
+public class AppUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
@@ -25,5 +25,6 @@ public class User {
     String lastName;
     String mobileNumber;
     String email;
+    String roles;
     int zipcodeId;
 }

@@ -1,9 +1,11 @@
 package com.example.BatteryStateOfHealth.Battery.authentication;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -12,12 +14,14 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 @Component
 public class JwtService {
 
-    SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    public final String ENCODE_KEY = Base64.getEncoder().encodeToString(key.getEncoded());
+    //SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+//    public final String ENCODE_KEY = Base64.getEncoder().encodeToString(key.getEncoded());
+    public static final String ENCODE_KEY = "2367566B59703373367639792F423F4528482B4D6251655468576D5A71347932";
 
     public String createJwt(String username){
         Map<String, Object> claims = new HashMap<>();
@@ -38,10 +42,40 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytesValue);
     }
 
-    public void validateJwt(final String token){
-        Jwts.parserBuilder()
-            .setSigningKey(getKeyForSigning())
-            .build()
-            .parseClaimsJws(token);
+    //public void validateJwt(final String token){
+    //    Jwts.parserBuilder()
+    //        .setSigningKey(getKeyForSigning())
+    //        .build()
+    //        .parseClaimsJws(token);
+    //}
+
+    public Claims extractClaims(final String token){
+        return Jwts.parserBuilder()
+                .setSigningKey(getKeyForSigning())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver){
+        final Claims claims = extractClaims(token);
+        return claimsResolver.apply((claims));
+    }
+
+    public String extractUsername(String token){
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public Date extractExpiration(String token){
+        return  extractClaim(token, Claims::getExpiration);
+    }
+
+    public Boolean isTokenPastValidity(String token){
+        return extractExpiration(token).before(new Date());
+    }
+
+    public Boolean validateJwt(final String token, UserDetails userDetails){
+        final String username = extractUsername(token);
+        return (username.equals(userDetails.getUsername()) && !isTokenPastValidity(token));
     }
 }

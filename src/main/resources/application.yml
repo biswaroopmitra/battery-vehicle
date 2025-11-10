@@ -14,7 +14,7 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.Postgres
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format-sql: true
   cloud:
     gateway:

@@ -1,51 +1,53 @@
 package com.example.BatteryStateOfHealth.Battery.authentication.validation;
 
 import com.example.BatteryStateOfHealth.Battery.authentication.JwtService;
+import com.example.BatteryStateOfHealth.Battery.authentication.config.AuthUserDetailsService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
 
 @Component
-public class JwtValidationFilter extends AbstractGatewayFilterFactory<JwtValidationFilter.Config> {
+public class JwtValidationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private RouteValidatorForJwt routeValidator;
+    private AuthUserDetailsService authUserDetailsService;
 
     @Autowired
     private JwtService jwtService;
 
-    public JwtValidationFilter(){
-        super();
-    }
-
 
     @Override
-    public GatewayFilter apply(Config config) {
-        return ((exchange, chain) -> {
-            if (routeValidator.isSecured.test(exchange.getRequest())){
-                //check if the header contains the token
-                if(!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)){
-                    throw new RuntimeException("No authorisation header found.");
-                }
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        String username = null;
 
-                String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-                if(authHeader!=null && authHeader.startsWith(AuthConstants.BEARER)){
-                    authHeader=authHeader.substring(AuthConstants.BEARER.length());
-                }
-                try {
-                    jwtService.validateJwt(authHeader);
-                } catch (Exception e) {
-                    throw new RuntimeException("Unauthorised access.");
-                }
-            }
-            return chain.filter(exchange);
-        });
+        if(authHeader!=null && authHeader.startsWith(AuthConstants.BEARER)){
+            token = authHeader.substring(AuthConstants.BEARER.length());
+            username = jwtService.extractUsername(token);
+        }
+
+        if(username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            UserDetails userDetails = authUserDetailsService.loadUserByUsername(username);
+            if(jwtService.validateJwt(token, userDetails)){
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+        filterChain.doFilter(request, response);
     }
 
-    public static class Config{
 
-    }
+}
 }

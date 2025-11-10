@@ -1,7 +1,7 @@
 package com.example.BatteryStateOfHealth.Battery.authentication.config;
 
-import com.example.BatteryStateOfHealth.Battery.user.User;
-import com.example.BatteryStateOfHealth.Battery.user.UserRepository;
+import com.example.BatteryStateOfHealth.Battery.user.AppUser;
+import com.example.BatteryStateOfHealth.Battery.user.AppUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,11 +14,11 @@ import java.util.Optional;
 public class AuthUserDetailsService implements UserDetailsService {
 
     @Autowired
-    public UserRepository userRepository;
+    public AppUserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<User> user = userRepository.findUserByUserName(username);
+        Optional<AppUser> user = userRepository.findUserByUsername(username);
         return user.map(CustomUserAuthDetails::new).orElseThrow(()->new UsernameNotFoundException("Invalid user"));
     }
 }
