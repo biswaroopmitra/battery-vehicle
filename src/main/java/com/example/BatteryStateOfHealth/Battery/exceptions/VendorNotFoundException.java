@@ -1,0 +1,8 @@
+package com.example.BatteryStateOfHealth.Battery.exceptions;
+
+public class VendorNotFoundException extends RuntimeException{
+
+    public VendorNotFoundException(String message) {
+        super(message);
+    }
+}

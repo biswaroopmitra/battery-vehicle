@@ -1,0 +1,53 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:battery}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:'1234'}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl_auto: none #update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        highlight_sql: true
+
+  flyway:
+    enabled: true
+    locations:
+      - classpath:database/migrations
+    default-schema: public
+    baseline-on-migrate: true
+
+logging:
+  level:
+      org.flywaydb.core.internal.sqlscript.DefaultSqlScriptExecutor: DEBUG
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      employeeService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10              # Look at last 10 calls
+        failureRateThreshold: 50           # Trip if 5/10 fail
+        waitDurationInOpenState: 10000ms   # Stay Open for 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+
+# Actuator configuration to expose the circuit health
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics
+  endpoint:
+    health:
+      show-details: always
